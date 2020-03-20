@@ -1,0 +1,52 @@
+=============================
+突变全景图(包含样本突变频率、MutsigCV、-LogP和TMB)
+=============================
+
+*****运行脚本****
+qsub run.sh
+
+*****需要准备的文件****
+1.公司生产流程生成的突变文件
+	Note：	1)格式如目录下的result_Somatic_Filter.xls
+		2)包含同义突变
+2.样本TMB文件, TMB.xls
+
+####run.sh包含4步####
+Step1:突变文件转换成maf格式
+perl /share/work2/yangar/programs/Scripts/maf_format.pl --i result_Somatic_Filter.xls --o result_Somatic_Filter.maf
+
+Step2:运行MutSigCV
+/share/work2/yangar/programs/Scripts/mutsigcv/software/MutSigCV_1.4/run_MutSigCV.sh /share/work2/yangar/programs/Scripts/mutsigcv/software/v81 result_Somatic_Filter.maf /share/work2/yangar/programs/Scripts/mutsigcv/software/exome_full192.coverage.txt /share/work2/yangar/programs/Scripts/mutsigcv/software/gene.covariates.txt ./mutsigcv /share/work2/yangar/programs/Scripts/mutsigcv/software/mutation_type_dictionary_file.txt /share/work2/yangar/programs/Scripts/mutsigcv/software/chr_files_hg19
+
+Step3:提取MutSigCV结果文件中的基因名和对应的值
+awk -v Fs='\t' -v OFS='\t' '{print $1,$14}' mutsigcv.sig_genes.txt > mutsigcv.sig_genes.new.txt
+
+Step4:生成可视化输入矩阵文件
+perl /share/work2/yangar/programs/Scripts/toF12_MutGene_All.pl --i result_Somatic_Filter.xls --tmb TMB.xls --sig mutsigcv.sig_genes.new.txt --num 113 -topgene 49  --o ./
+
+***参数解释
+	--i		突变文件
+	--tmb		TMB文件
+	--sig		step3产生的MutSigCV文件
+	--num		总样本数
+	-topgene	输出突变频率最高的基因数量
+	--o		输出文件路径
+
+Step5:可视化
+Rscript /share/work2/yangar/programs/Visualization/MutationLandscape/MutationLandscape.R --file1 F1_MutGene_Matrix.txt --file2 F2_MutGene_Stats.txt --file3 F3_NumMut_Sorted.txt --out MutationLandscape.pdf
+
+
+*****示例数据*****
+突变文件:result_Somatic_Filter.xls
+TMB文件:TMB.xls
+可视化结果:MutationLandscape.pdf
+
+#=======================================================
+#
+#         FILE: README of MutationLandscape plot
+#       AUTHOR:Huabin Chi, chihb4423@berryoncology.com
+# ORGANIZATION:BerryOncology
+#      CREATED:02/19/2020
+#
+#=======================================================
+
